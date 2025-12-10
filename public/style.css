@@ -1,0 +1,10 @@
+body { font-family: Arial, sans-serif; margin:0; background:#f4f6f8; }
+.container { max-width:800px; margin:80px auto; text-align:center; }
+.btn { background:#2563eb; color:#fff; padding:10px 16px; text-decoration:none; border-radius:6px; }
+.room { display:flex; height:100vh; }
+.left { flex:1; display:flex; flex-direction:column; }
+.topbar { display:flex; justify-content:space-between; align-items:center; padding:10px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+.actions button { margin-left:8px; }
+.videos { padding:10px; display:flex; flex-wrap:wrap; gap:8px; overflow:auto; }
+.videoTile { width:320px; height:240px; background:#000; border-radius:6px; object-fit:cover; }
+.right { width:260px; padding:10px; background:#fff; box-shadow: -2px 0 6px rgba(0,0,0,0.04); }

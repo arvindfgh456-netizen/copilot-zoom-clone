@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zoom Clone - Home</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Zoom Clone</h1>
+    <p>Create a new room or join an existing one.</p>
+    <div class="controls">
+      <a class="btn" href="/create">Create new room</a>
+      <form id="joinForm">
+        <input id="roomInput" placeholder="Paste room id or full link" />
+        <button type="submit">Join room</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    const form = document.getElementById('joinForm');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const v = document.getElementById('roomInput').value.trim();
+      if (!v) return;
+      // if a full url, extract last part
+      try {
+        const u = new URL(v);
+        const parts = u.pathname.split('/').filter(Boolean);
+        const id = parts[parts.length-1];
+        window.location = `/room/${id}`;
+      } catch (err) {
+        window.location = `/room/${v}`;
+      }
+    });
+  </script>
+</body>
+</html>

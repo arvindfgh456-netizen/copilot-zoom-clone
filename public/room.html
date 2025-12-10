@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zoom Clone - Room</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="room">
+    <div class="left">
+      <div class="topbar">
+        <div id="roomId"></div>
+        <div class="actions">
+          <button id="copyLink">Copy invite link</button>
+          <button id="toggleAudio">Mute</button>
+          <button id="toggleVideo">Stop Video</button>
+          <button id="startRec">Start Recording</button>
+          <button id="stopRec" disabled>Stop Recording</button>
+        </div>
+      </div>
+      <div id="videos" class="videos"></div>
+    </div>
+    <div class="right">
+      <h3>Participants</h3>
+      <ul id="participants"></ul>
+      <a id="downloadLink" style="display:none">Download Recording</a>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/room.js"></script>
+</body>
+</html>

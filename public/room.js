@@ -104,9 +104,67 @@ function createPeerConnection(otherId, isInitiator) {
   return pc;
 }
 
+// Chat helpers
+const chatMessagesEl = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+const displayNameInput = document.getElementById('displayName');
+
+let displayName = localStorage.getItem('displayName') || '';
+if (displayNameInput) displayNameInput.value = displayName;
+
+displayNameInput && displayNameInput.addEventListener('change', (e) => {
+  displayName = e.target.value.trim().slice(0,50);
+  try { localStorage.setItem('displayName', displayName); } catch (e) {}
+});
+
+function appendChatMessage(msg, me = false) {
+  const div = document.createElement('div');
+  div.className = 'chat-msg' + (me ? ' me' : '');
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const date = new Date(msg.ts || Date.now());
+  const fromText = me ? 'You' : (msg.from || 'Anonymous');
+  meta.textContent = `${fromText} • ${date.toLocaleTimeString()}`;
+  const txt = document.createElement('div');
+  txt.textContent = msg.text;
+  div.appendChild(meta);
+  div.appendChild(txt);
+  chatMessagesEl.appendChild(div);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+chatSend.addEventListener('click', () => {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  socket.emit('chat-message', { roomId, text, name: displayName });
+  appendChatMessage({ from: 'You', text, ts: Date.now() }, true);
+  chatInput.value = '';
+});
+
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { chatSend.click(); }
+});
+
 socket.on('connect', async () => {
   await initLocal();
   socket.emit('join-room', roomId);
+});
+
+socket.on('chat-history', (hist) => {
+  if (!hist || !hist.length) return;
+  hist.forEach(m => {
+    const me = (m.id === socket.id);
+    // if a history message is from me, render as 'You'
+    appendChatMessage(m, me);
+  });
+});
+
+socket.on('chat-message', (msg) => {
+  // ignore server echo of messages we already appended locally
+  if (msg.id === socket.id) return;
+  const me = (msg.id === socket.id);
+  appendChatMessage(msg, me);
 });
 
 socket.on('all-users', async (users) => {
@@ -153,7 +211,7 @@ socket.on('user-disconnected', id => {
   updateParticipants();
 });
 
-// Controls
+// Controls (copy/share/toggles remain)
 const copyLinkBtn = document.getElementById('copyLink');
 copyLinkBtn.onclick = async () => {
   const url = window.location.href;
@@ -192,7 +250,7 @@ toggleVideoBtn.onclick = () => {
   toggleVideoBtn.textContent = videoTrack.enabled ? '🎥' : '📷';
 };
 
-// Recording (client-side composite of all visible videos)
+// Recording (same as before) -- keep existing recording implementation
 let recorder;
 let recordedChunks = [];
 let recordingCanvas, canvasStream, audioContext, audioDestination, drawRAF;
@@ -278,4 +336,3 @@ document.getElementById('stopRec').onclick = stopRecording;
 window.addEventListener('beforeunload', () => {
   try { socket.close(); } catch (e) {}
 });
-

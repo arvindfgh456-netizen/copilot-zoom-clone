@@ -46,7 +46,31 @@ body{background:linear-gradient(180deg,#071127 0%, #071827 100%);color:#e6eef8}
 .participants li{padding:8px;border-radius:8px;background:var(--glass);color:var(--muted)}
 .btn.full{width:100%;display:inline-flex;justify-content:center}
 
+/* Chat */
+.chat-card{display:flex;flex-direction:column;gap:8px}
+.chat-messages{height:300px;overflow:auto;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02)}
+.chat-msg{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:6px}
+.chat-msg.me{background:linear-gradient(90deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08))}
+.chat-msg .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+.chat-input-row{display:flex;gap:8px;margin-top:6px}
+.chat-input-row input{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.display-name{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;margin-bottom:6px}
+
 /* toast */
 .toast{position:fixed;right:20px;bottom:20px;background:rgba(0,0,0,0.6);padding:10px 14px;border-radius:8px;color:#fff;display:none}
 
-@media(max-width:900px){.room-main{flex-direction:column}.side-panel{width:100%}}
+@media(max-width:900px){
+  .room-main{flex-direction:column}
+  .side-panel{width:100%}
+  .chat-messages{height:220px}
+  .videoTile{padding-bottom:56%}
+  .chat-input-row input{padding:12px}
+}
+
+@media(max-width:520px){
+  .video-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+  .videoTile{border-radius:8px}
+  .room-header{padding:10px}
+  .controls{gap:6px}
+  .display-name{padding:10px}
+}

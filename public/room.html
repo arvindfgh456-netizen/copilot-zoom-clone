@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>Room — Zoom Clone</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,6 +33,16 @@
       <section id="videos" class="video-grid" aria-live="polite"></section>
 
       <aside class="side-panel">
+        <div class="panel-card chat-card">
+          <h4>Chat</h4>
+          <input id="displayName" class="display-name" placeholder="Your name (optional)" />
+          <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+          <div class="chat-input-row">
+            <input id="chatInput" placeholder="Type a message and press Enter" />
+            <button id="chatSend" class="btn">Send</button>
+          </div>
+        </div>
+
         <div class="panel-card">
           <h4>Participants</h4>
           <ul id="participants" class="participants"></ul>

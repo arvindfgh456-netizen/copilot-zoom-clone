@@ -1,32 +1,53 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Zoom Clone - Room</title>
+  <title>Room — Zoom Clone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <div class="room">
-    <div class="left">
-      <div class="topbar">
-        <div id="roomId"></div>
-        <div class="actions">
-          <button id="copyLink">Copy invite link</button>
-          <button id="toggleAudio">Mute</button>
-          <button id="toggleVideo">Stop Video</button>
-          <button id="startRec">Start Recording</button>
-          <button id="stopRec" disabled>Stop Recording</button>
+  <div class="room-app">
+    <header class="room-header">
+      <div class="left">
+        <div id="roomId" class="room-label">Room:</div>
+      </div>
+      <div class="center">
+        <div class="controls">
+          <button id="toggleAudio" class="icon-btn" title="Toggle audio">🔈</button>
+          <button id="toggleVideo" class="icon-btn" title="Toggle video">🎥</button>
+          <button id="startRec" class="btn small">Start Recording</button>
+          <button id="stopRec" class="btn small" disabled>Stop</button>
+          <button id="shareBtn" class="btn small outline">Share Invite</button>
         </div>
       </div>
-      <div id="videos" class="videos"></div>
-    </div>
-    <div class="right">
-      <h3>Participants</h3>
-      <ul id="participants"></ul>
-      <a id="downloadLink" style="display:none">Download Recording</a>
-    </div>
+      <div class="right">
+        <button id="copyLink" class="btn small">Copy Link</button>
+      </div>
+    </header>
+
+    <main class="room-main">
+      <section id="videos" class="video-grid" aria-live="polite"></section>
+
+      <aside class="side-panel">
+        <div class="panel-card">
+          <h4>Participants</h4>
+          <ul id="participants" class="participants"></ul>
+        </div>
+
+        <div class="panel-card">
+          <h4>Recording</h4>
+          <a id="downloadLink" class="btn full" style="display:none">Download Recording</a>
+        </div>
+      </aside>
+    </main>
+
+    <div id="toast" class="toast" aria-live="assertive"></div>
   </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/room.js"></script>
 </body>

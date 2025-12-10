@@ -1,10 +1,52 @@
-body { font-family: Arial, sans-serif; margin:0; background:#f4f6f8; }
-.container { max-width:800px; margin:80px auto; text-align:center; }
-.btn { background:#2563eb; color:#fff; padding:10px 16px; text-decoration:none; border-radius:6px; }
-.room { display:flex; height:100vh; }
-.left { flex:1; display:flex; flex-direction:column; }
-.topbar { display:flex; justify-content:space-between; align-items:center; padding:10px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-.actions button { margin-left:8px; }
-.videos { padding:10px; display:flex; flex-wrap:wrap; gap:8px; overflow:auto; }
-.videoTile { width:320px; height:240px; background:#000; border-radius:6px; object-fit:cover; }
-.right { width:260px; padding:10px; background:#fff; box-shadow: -2px 0 6px rgba(0,0,0,0.04); }
+:root{
+  --bg:#0f1724; /* deep blue */
+  --card:#0b1220;
+  --muted:#9aa4b2;
+  --accent:#6ee7b7; /* mint */
+  --primary:#6366f1; /* indigo */
+  --surface:#0b1226;
+  --glass: rgba(255,255,255,0.04);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
+body{background:linear-gradient(180deg,#071127 0%, #071827 100%);color:#e6eef8}
+
+/* Home */
+.home{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.home-card{width:100%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:28px;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+.brand{display:flex;gap:16px;align-items:center}
+.logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--primary),#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:28px;color:white}
+.brand h1{margin:0;font-size:20px}
+.muted{color:var(--muted);margin-top:6px}
+.actions{margin-top:22px;display:flex;flex-direction:column;gap:12px}
+.join-inline{display:flex;gap:8px}
+.input{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;border:0;cursor:pointer;background:var(--surface);color:var(--accent);font-weight:600}
+.btn.primary{background:linear-gradient(90deg,var(--primary),#8b5cf6);color:white}
+.btn.small{padding:8px 10px;border-radius:8px;font-size:13px}
+.btn.outline{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent)}
+.home-foot{margin-top:16px;color:var(--muted)}
+
+/* Room */
+.room-app{min-height:100vh;display:flex;flex-direction:column}
+.room-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0));backdrop-filter: blur(6px)}
+.room-label{font-weight:600;color:var(--muted)}
+.controls{display:flex;gap:10px;align-items:center}
+.icon-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:10px;color:var(--accent);cursor:pointer}
+
+.room-main{display:flex;flex:1;gap:12px;padding:18px}
+.video-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;align-content:start}
+.videoTile{width:100%;height:0;padding-bottom:56%;background:#000;border-radius:12px;overflow:hidden;position:relative}
+.videoTile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
+.side-panel{width:300px;display:flex;flex-direction:column;gap:12px}
+.panel-card{background:var(--card);padding:12px;border-radius:10px}
+.participants{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.participants li{padding:8px;border-radius:8px;background:var(--glass);color:var(--muted)}
+.btn.full{width:100%;display:inline-flex;justify-content:center}
+
+/* toast */
+.toast{position:fixed;right:20px;bottom:20px;background:rgba(0,0,0,0.6);padding:10px 14px;border-radius:8px;color:#fff;display:none}
+
+@media(max-width:900px){.room-main{flex-direction:column}.side-panel{width:100%}}

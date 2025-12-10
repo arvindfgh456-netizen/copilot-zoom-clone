@@ -11,22 +11,37 @@ const peers = {}; // peerId -> RTCPeerConnection
 const remoteVideos = {};
 const mediaConstraints = { audio: true, video: true };
 
+function showToast(msg, timeout = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._to);
+  t._to = setTimeout(() => t.style.display = 'none', timeout);
+}
+
 async function initLocal() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
   } catch (e) {
-    alert('Could not get camera/microphone: ' + e.message);
+    showToast('Could not get camera/microphone: ' + e.message);
     return;
   }
+  addLocalVideo();
+}
+
+function addLocalVideo(){
   const videos = document.getElementById('videos');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'videoTile';
+  wrapper.id = 'localWrapper';
   const myVideo = document.createElement('video');
   myVideo.id = 'localVideo';
   myVideo.autoplay = true;
   myVideo.muted = true;
   myVideo.playsInline = true;
   myVideo.srcObject = localStream;
-  myVideo.className = 'videoTile';
-  videos.appendChild(myVideo);
+  wrapper.appendChild(myVideo);
+  videos.prepend(wrapper);
 }
 
 function updateParticipants() {
@@ -47,7 +62,7 @@ function createPeerConnection(otherId, isInitiator) {
     ]
   });
 
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
   pc.onicecandidate = (e) => {
     if (e.candidate) {
@@ -58,27 +73,28 @@ function createPeerConnection(otherId, isInitiator) {
   pc.ontrack = (e) => {
     if (!remoteVideos[otherId]) {
       const videos = document.getElementById('videos');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'videoTile';
+      wrapper.id = `remote_${otherId}`;
       const v = document.createElement('video');
-      v.id = `remote_${otherId}`;
       v.autoplay = true;
       v.playsInline = true;
       v.srcObject = new MediaStream();
-      v.className = 'videoTile';
-      videos.appendChild(v);
+      wrapper.appendChild(v);
+      videos.appendChild(wrapper);
       remoteVideos[otherId] = v;
     }
-    // append all tracks to the video element's srcObject
+    // append tracks
     const stream = remoteVideos[otherId].srcObject;
     e.streams[0].getTracks().forEach(t => stream.addTrack(t));
   };
 
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-      if (remoteVideos[otherId]) {
-        remoteVideos[otherId].remove();
-        delete remoteVideos[otherId];
-      }
-      delete peers[otherId];
+      const el = document.getElementById(`remote_${otherId}`);
+      if (el) el.remove();
+      if (remoteVideos[otherId]) delete remoteVideos[otherId];
+      if (peers[otherId]) delete peers[otherId];
       updateParticipants();
     }
   };
@@ -94,16 +110,13 @@ socket.on('connect', async () => {
 });
 
 socket.on('all-users', async (users) => {
-  // create offer for each existing user
   for (const id of users) {
     const pc = createPeerConnection(id, true);
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       socket.emit('offer', { to: id, sdp: offer });
-    } catch (e) {
-      console.error('Error creating offer', e);
-    }
+    } catch (e) { console.error(e); }
   }
 });
 
@@ -115,50 +128,49 @@ socket.on('offer', async (payload) => {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     socket.emit('answer', { to: from, sdp: answer });
-  } catch (e) {
-    console.error('Error handling offer', e);
-  }
+  } catch (e) { console.error(e); }
 });
 
 socket.on('answer', async (payload) => {
   const from = payload.from;
   const pc = peers[from];
   if (!pc) return;
-  try {
-    await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-  } catch (e) {
-    console.error('Error setting remote description for answer', e);
-  }
+  try { await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp)); } catch (e) { console.error(e); }
 });
 
 socket.on('ice-candidate', async (payload) => {
   const from = payload.from;
   const pc = peers[from];
   if (!pc) return;
-  try {
-    await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-  } catch (e) {
-    console.error('Error adding received ice candidate', e);
-  }
+  try { await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)); } catch (e) { console.error(e); }
 });
 
 socket.on('user-disconnected', id => {
-  if (peers[id]) {
-    try { peers[id].close(); } catch (e) {}
-    delete peers[id];
-  }
-  if (remoteVideos[id]) {
-    remoteVideos[id].remove();
-    delete remoteVideos[id];
-  }
+  if (peers[id]) { try { peers[id].close(); } catch (e) {} delete peers[id]; }
+  const el = document.getElementById(`remote_${id}`);
+  if (el) el.remove();
+  if (remoteVideos[id]) delete remoteVideos[id];
   updateParticipants();
 });
 
 // Controls
 const copyLinkBtn = document.getElementById('copyLink');
-copyLinkBtn.onclick = () => {
+copyLinkBtn.onclick = async () => {
   const url = window.location.href;
-  navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard'));
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('Link copied to clipboard');
+  } catch (e) { showToast('Could not copy link'); }
+};
+
+const shareBtn = document.getElementById('shareBtn');
+shareBtn.onclick = async () => {
+  const url = window.location.href;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Join my room', text: `Join my room: ${roomId}`, url }); } catch (e) { /* user cancelled */ }
+  } else {
+    try { await navigator.clipboard.writeText(url); showToast('Invite link copied'); } catch (e) { showToast('Could not share link'); }
+  }
 };
 
 const toggleAudioBtn = document.getElementById('toggleAudio');
@@ -169,7 +181,7 @@ toggleAudioBtn.onclick = () => {
   const audioTrack = localStream.getAudioTracks()[0];
   if (!audioTrack) return;
   audioTrack.enabled = !audioTrack.enabled;
-  toggleAudioBtn.textContent = audioTrack.enabled ? 'Mute' : 'Unmute';
+  toggleAudioBtn.textContent = audioTrack.enabled ? '🔈' : '🔇';
 };
 
 toggleVideoBtn.onclick = () => {
@@ -177,70 +189,62 @@ toggleVideoBtn.onclick = () => {
   const videoTrack = localStream.getVideoTracks()[0];
   if (!videoTrack) return;
   videoTrack.enabled = !videoTrack.enabled;
-  toggleVideoBtn.textContent = videoTrack.enabled ? 'Stop Video' : 'Start Video';
+  toggleVideoBtn.textContent = videoTrack.enabled ? '🎥' : '📷';
 };
 
 // Recording (client-side composite of all visible videos)
 let recorder;
 let recordedChunks = [];
-let recordingCanvas, canvasStream, audioContext, audioDestination, drawInterval;
+let recordingCanvas, canvasStream, audioContext, audioDestination, drawRAF;
 
 async function startRecording() {
-  // build canvas
   recordingCanvas = document.createElement('canvas');
-  const videos = document.querySelectorAll('.videoTile');
-  const cols = Math.ceil(Math.sqrt(videos.length));
-  const rows = Math.ceil(videos.length / cols);
-  const w = 640, h = 480;
+  const vids = document.querySelectorAll('.videoTile video');
+  const count = Math.max(1, vids.length);
+  const cols = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / cols);
+  const w = 640, h = 360;
   recordingCanvas.width = cols * w;
   recordingCanvas.height = rows * h;
   const ctx = recordingCanvas.getContext('2d');
 
-  // audio mixing
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   audioDestination = audioContext.createMediaStreamDestination();
 
-  // connect all video elements' audio to destination
-  videos.forEach(v => {
-    try {
-      const src = audioContext.createMediaElementSource(v);
-      src.connect(audioDestination);
-    } catch (e) {
-      // ignore if cannot connect
-    }
+  vids.forEach(v => {
+    try { const src = audioContext.createMediaElementSource(v); src.connect(audioDestination); } catch (e) {}
   });
-  // also connect local stream audio
   if (localStream && localStream.getAudioTracks().length) {
-    const localAudio = audioContext.createMediaStreamSource(new MediaStream([localStream.getAudioTracks()[0]]));
-    localAudio.connect(audioDestination);
+    try { const localAudio = audioContext.createMediaStreamSource(new MediaStream([localStream.getAudioTracks()[0]])); localAudio.connect(audioDestination); } catch (e) {}
   }
 
-  // draw loop
   function draw() {
-    const vids = Array.from(document.querySelectorAll('.videoTile'));
-    const cols = Math.ceil(Math.sqrt(vids.length)) || 1;
-    const rows = Math.ceil(vids.length / cols) || 1;
-    const w = 640, h = 480;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-    vids.forEach((v, i) => {
-      const x = (i % cols) * w;
-      const y = Math.floor(i / cols) * h;
-      try { ctx.drawImage(v, x, y, w, h); } catch (e) {}
-    });
-    drawInterval = requestAnimationFrame(draw);
+    const videoEls = Array.from(document.querySelectorAll('.videoTile video'));
+    const cols = Math.ceil(Math.sqrt(videoEls.length)) || 1;
+    const w = 640, h = 360;
+    // resize canvas if layout changed
+    recordingCanvas.width = cols * w;
+    const rows = Math.ceil(videoEls.length / cols) || 1;
+    recordingCanvas.height = rows * h;
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,recordingCanvas.width,recordingCanvas.height);
+    videoEls.forEach((v,i) => { const x = (i%cols)*w; const y = Math.floor(i/cols)*h; try { ctx.drawImage(v,x,y,w,h); } catch (e) {} });
+    drawRAF = requestAnimationFrame(draw);
   }
   draw();
 
   canvasStream = recordingCanvas.captureStream(25);
-  // combine canvas video track(s) and audioDestination tracks
   const mixedStream = new MediaStream();
   canvasStream.getVideoTracks().forEach(t => mixedStream.addTrack(t));
   audioDestination.stream.getAudioTracks().forEach(t => mixedStream.addTrack(t));
 
   recordedChunks = [];
-  recorder = new MediaRecorder(mixedStream, { mimeType: 'video/webm;codecs=vp9,opus' });
-  recorder.ondataavailable = e => { if (e.data.size) recordedChunks.push(e.data); };
+  try {
+    recorder = new MediaRecorder(mixedStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+  } catch (e) {
+    recorder = new MediaRecorder(mixedStream);
+  }
+
+  recorder.ondataavailable = e => { if (e.data && e.data.size) recordedChunks.push(e.data); };
   recorder.onstop = () => {
     const blob = new Blob(recordedChunks, { type: 'video/webm' });
     const url = URL.createObjectURL(blob);
@@ -248,19 +252,23 @@ async function startRecording() {
     dl.style.display = 'block';
     dl.href = url;
     dl.download = `recording-${roomId}-${Date.now()}.webm`;
+    showToast('Recording ready to download');
   };
+
   recorder.start();
   document.getElementById('startRec').disabled = true;
   document.getElementById('stopRec').disabled = false;
+  showToast('Recording started');
 }
 
 function stopRecording() {
   if (recorder && recorder.state !== 'inactive') recorder.stop();
-  if (drawInterval) cancelAnimationFrame(drawInterval);
+  if (drawRAF) cancelAnimationFrame(drawRAF);
   if (audioContext) audioContext.close();
   if (recordingCanvas) recordingCanvas.remove();
   document.getElementById('startRec').disabled = false;
   document.getElementById('stopRec').disabled = true;
+  showToast('Recording stopped');
 }
 
 document.getElementById('startRec').onclick = startRecording;
@@ -270,3 +278,4 @@ document.getElementById('stopRec').onclick = stopRecording;
 window.addEventListener('beforeunload', () => {
   try { socket.close(); } catch (e) {}
 });
+

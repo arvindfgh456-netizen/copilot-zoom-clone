@@ -39,6 +39,8 @@
           <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
           <div class="chat-input-row">
             <input id="chatInput" placeholder="Type a message and press Enter" />
+            <button id="uploadBtn" class="btn">Upload</button>
+            <input id="fileInput" type="file" style="display:none" />
             <button id="chatSend" class="btn">Send</button>
           </div>
         </div>
@@ -56,6 +58,18 @@
     </main>
 
     <div id="toast" class="toast" aria-live="assertive"></div>
+  </div>
+
+  <!-- File preview modal -->
+  <div id="fileModal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h3 id="fileModalTitle">File preview</h3>
+      <div id="filePreviewArea" style="max-height:60vh; overflow:auto"></div>
+      <div style="margin-top:12px; text-align:right">
+        <button id="fileCancel" class="btn">Delete</button>
+        <button id="fileSend" class="btn primary">Send</button>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

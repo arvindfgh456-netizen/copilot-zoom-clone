@@ -9,6 +9,7 @@ document.getElementById('roomId').textContent = `Room: ${roomId}`;
 let localStream;
 const peers = {}; // peerId -> RTCPeerConnection
 const remoteVideos = {};
+const participantsMap = {}; // id -> {name, role}
 const mediaConstraints = { audio: true, video: true };
 
 function showToast(msg, timeout = 2500) {
@@ -47,10 +48,12 @@ function addLocalVideo(){
 function updateParticipants() {
   const ul = document.getElementById('participants');
   ul.innerHTML = '';
-  const keys = Object.keys(peers);
-  keys.forEach(k => {
+  // show participants from participantsMap
+  const entries = Object.entries(participantsMap);
+  entries.forEach(([id, info]) => {
     const li = document.createElement('li');
-    li.textContent = k;
+    li.textContent = info.name || id;
+    if (info.role === 'admin') li.style.fontWeight = '700';
     ul.appendChild(li);
   });
 }
@@ -146,9 +149,135 @@ chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { chatSend.click(); }
 });
 
+// File upload UI and handling
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('fileInput');
+const fileModal = document.getElementById('fileModal');
+const filePreviewArea = document.getElementById('filePreviewArea');
+const fileSendBtn = document.getElementById('fileSend');
+const fileCancelBtn = document.getElementById('fileCancel');
+let currentFileData = null;
+
+if (uploadBtn && fileInput) {
+  uploadBtn.onclick = () => fileInput.click();
+  fileInput.onchange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      currentFileData = { filename: f.name, type: f.type, size: f.size, dataUrl: reader.result };
+      // build preview
+      if (filePreviewArea) filePreviewArea.innerHTML = '';
+      if (f.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = reader.result;
+        img.style.maxWidth = '100%';
+        if (filePreviewArea) filePreviewArea.appendChild(img);
+      } else if (f.type === 'application/pdf') {
+        const embed = document.createElement('embed');
+        embed.src = reader.result;
+        embed.type = 'application/pdf';
+        embed.style.width = '100%';
+        embed.style.height = '400px';
+        if (filePreviewArea) filePreviewArea.appendChild(embed);
+      } else {
+        const p = document.createElement('div');
+        p.textContent = `${f.name} (${Math.round(f.size/1024)} KB)`;
+        if (filePreviewArea) filePreviewArea.appendChild(p);
+      }
+      if (fileModal) fileModal.style.display = 'block';
+    };
+    reader.readAsDataURL(f);
+  };
+}
+
+if (fileCancelBtn) fileCancelBtn.onclick = () => {
+  currentFileData = null;
+  if (fileInput) fileInput.value = '';
+  if (fileModal) fileModal.style.display = 'none';
+};
+
+if (fileSendBtn) fileSendBtn.onclick = () => {
+  if (!currentFileData) return;
+  socket.emit('file-send', { roomId, filename: currentFileData.filename, type: currentFileData.type, dataUrl: currentFileData.dataUrl, size: currentFileData.size, name: displayName });
+  if (fileModal) fileModal.style.display = 'none';
+  if (fileInput) fileInput.value = '';
+  currentFileData = null;
+  showToast('File sent');
+};
+
+function appendFileMessage(file) {
+  const div = document.createElement('div');
+  div.className = 'chat-msg file';
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const date = new Date(file.ts || Date.now());
+  meta.textContent = `${file.from || 'File'} • ${date.toLocaleTimeString()}`;
+  const content = document.createElement('div');
+  content.className = 'file-preview';
+  if (file.type && file.type.startsWith('image/')) {
+    const img = document.createElement('img');
+    img.src = file.dataUrl;
+    img.style.maxWidth = '200px';
+    img.style.display = 'block';
+    content.appendChild(img);
+  } else if (file.type === 'application/pdf') {
+    const embed = document.createElement('embed');
+    embed.src = file.dataUrl;
+    embed.type = 'application/pdf';
+    embed.style.width = '100%';
+    embed.style.height = '200px';
+    content.appendChild(embed);
+  } else {
+    const p = document.createElement('div');
+    p.textContent = file.filename || 'file';
+    content.appendChild(p);
+  }
+  const link = document.createElement('a');
+  link.href = file.dataUrl;
+  link.download = file.filename || 'file';
+  link.textContent = 'Download';
+  link.style.display = 'inline-block';
+  link.style.marginTop = '6px';
+
+  div.appendChild(meta);
+  div.appendChild(content);
+  div.appendChild(link);
+  chatMessagesEl.appendChild(div);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
 socket.on('connect', async () => {
   await initLocal();
-  socket.emit('join-room', roomId);
+  // send display name when joining
+  socket.emit('join-room', { roomId, name: displayName });
+});
+
+socket.on('ip-mismatch', (data) => {
+  showToast('ERROR: ' + data.error, 5000);
+  console.error('IP Mismatch:', data);
+  // Optionally: redirect user after a delay or show error UI
+  setTimeout(() => {
+    alert(`Cannot join room: ${data.error}\n\nYour IP: ${data.yourIP}\nRoom IP: ${data.roomIP}`);
+    window.location.href = '/';
+  }, 2000);
+});
+
+// updated participants list from server
+socket.on('participants', (arr) => {
+  // reset map
+  for (const k in participantsMap) delete participantsMap[k];
+  if (Array.isArray(arr)) {
+    arr.forEach(p => {
+      participantsMap[p.id] = { name: p.name, role: p.role };
+    });
+  }
+  updateParticipants();
+});
+
+// file received from server
+socket.on('file-received', (file) => {
+  appendFileMessage(file);
 });
 
 socket.on('chat-history', (hist) => {
